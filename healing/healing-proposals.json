@@ -23,6 +23,54 @@
       "proposedAt": "2026-09-01T09:17:14.703Z",
       "decidedAt": "2026-09-01T09:17:14.715Z",
       "decidedBy": "auto-confidence"
+    },
+    {
+      "proposalId": "heal-2b772f0465ee",
+      "status": "approved",
+      "context": {
+        "testTitle": "Healing scenario: login-btn selector drifted",
+        "testFile": "C:\\Users\\TEMPPRIAU\\demoai\\ai-e2e-regression-suite\\playwright-tests\\login-healing-demo.spec.ts",
+        "failedSelector": "[data-testid=\"login-btn\"]",
+        "action": "click",
+        "pageUrl": "https://opensource-demo.orangehrmlive.com/web/index.php/auth/login",
+        "pageTitle": "OrangeHRM"
+      },
+      "suggestion": {
+        "candidateSelector": "button[type=\"submit\"]",
+        "confidence": 0.94,
+        "reasoning": "No element with data-testid=\"login-btn\" exists on the page. The only visible submit button is <button type=\"submit\"> with text \"Login\". This is the direct functional replacement for the login action.",
+        "alternatives": [
+          ".oxd-button--medium",
+          "button.oxd-button"
+        ]
+      },
+      "proposedAt": "2026-09-01T09:25:23.115Z",
+      "decidedAt": "2026-09-01T09:25:23.127Z",
+      "decidedBy": "auto-confidence"
+    },
+    {
+      "proposalId": "heal-872769c61bad",
+      "status": "approved",
+      "context": {
+        "testTitle": "Healing scenario: login-btn selector drifted",
+        "testFile": "C:\\Users\\TEMPPRIAU\\demoai\\ai-e2e-regression-suite\\playwright-tests\\login-healing-demo.spec.ts",
+        "failedSelector": "[data-testid=\"login-btn\"]",
+        "action": "click",
+        "pageUrl": "https://opensource-demo.orangehrmlive.com/web/index.php/auth/login",
+        "pageTitle": "OrangeHRM"
+      },
+      "suggestion": {
+        "candidateSelector": "button[type=\"submit\"]",
+        "confidence": 0.94,
+        "reasoning": "No element with data-testid=\"login-btn\" exists on the page. The only visible submit button is <button type=\"submit\"> with text \"Login\". This is the direct functional replacement for the login action.",
+        "alternatives": [
+          ".oxd-button--medium",
+          "button.oxd-button"
+        ]
+      },
+      "proposedAt": "2026-09-01T12:52:19.485Z",
+      "decidedAt": "2026-09-01T12:52:19.511Z",
+      "decidedBy": "auto-confidence"
     }
   ]
 }

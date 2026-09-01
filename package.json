@@ -5,8 +5,13 @@
   "description": "Demo TypeScript E2E framework scaffold with Playwright, Azure OpenAI mock, and Jira MCP simulation using OrangeHRM.",
   "scripts": {
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:video": "playwright test --video=on",
+    "test:e2e:video:fail": "playwright test --video=retain-on-failure",
+    "test:unit": "node --require ts-node/register --test agent/jira-mcp-agent.example.test.ts agent/playwright-mcp-generator.example.test.ts agent/orchestrator.example.test.ts jira/jira-writer.example.test.ts healing/self-healing-engine.example.test.ts",
+    "demo:heal": "ts-node scripts/healing-demo.ts",
+    "show-report": "playwright show-report test-results/html-report",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit"
   },

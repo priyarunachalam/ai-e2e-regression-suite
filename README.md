@@ -47,30 +47,14 @@ automatically.
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                        ORCHESTRATION PIPELINE                            │
-│                                                                          │
-│  ┌─────────────┐     ┌──────────────────┐     ┌──────────────────────┐  │
-│  │  Jira MCP   │     │  Playwright MCP  │     │    Azure OpenAI      │  │
-│  │  (story     │     │  (test code      │     │    (self-healing      │  │
-│  │  reader)    │     │  generator)      │     │    selector AI)       │  │
-│  └──────┬──────┘     └────────┬─────────┘     └──────────┬───────────┘  │
-│         │                     │                           │              │
-│         ▼                     ▼                           │              │
-│  ┌─────────────────────────────────────────────┐         │              │
-│  │              RegressionOrchestrator          │         │              │
-│  │                                             │         │              │
-│  │  Step 1 ── Read Jira story                  │         │              │
-│  │  Step 2 ── Generate Playwright tests  ───── ┼─────────┘              │
-│  │  Step 3 ── Execute tests (CLI)              │                        │
-│  │  Step 4 ── Capture results                  │                        │
-│  │  Step 5 ── Self-heal failures ──────────────┼──► SelfHealingEngine  │
-│  │  Step 6 ── Patch spec + re-run              │    DOM Inspector       │
-│  │  Step 7 ── Update Jira ─────────────────────┼──► JiraWriterService  │
-│  └─────────────────────────────────────────────┘                        │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    A[Jira Story] --> B[Jira MCP]
+    B --> C[Playwright MCP]
+    C --> D[Generated Test]
+    D --> E[Playwright Execution]
+    E --> F[Azure OpenAI Self-Healing]
+    F --> G[Jira Update]
 ```
 
 ### Component Map

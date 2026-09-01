@@ -20,7 +20,8 @@
     "healing/**/*.ts",
     "jira/**/*.ts",
     "playwright-tests/**/*.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "playwright.config.ts"
   ],
   "exclude": [
     "node_modules",
