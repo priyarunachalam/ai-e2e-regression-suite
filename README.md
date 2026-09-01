@@ -186,43 +186,55 @@ node --require ts-node/register --test healing/self-healing-engine.example.test.
 ## Self-Healing Explanation
 
 When a Playwright test fails because a UI selector can no longer be found
-(e.g. a button's `data-testid` was renamed), the framework executes this
-7-step recovery loop automatically:
+(e.g. a button's `data-testid` was renamed), the framework executes the
+recovery workflow below.
 
+### Self-Healing State Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> TestRunning : npm run execute
+
+    TestRunning --> TestPassed : All selectors found ✅
+    TestRunning --> TestFailed : Selector not found ❌
+
+    TestPassed --> JiraCommentPass : Write PASS to Jira
+    JiraCommentPass --> [*]
+
+    TestFailed --> JiraCommentFail : Write FAIL to Jira
+    TestFailed --> DOMScan : healing/analyzer.ts triggered
+
+    DOMScan --> CandidateFound : Similar selector found\n(e.g. login-button, 95%)
+    DOMScan --> NoCandidateFound : No similar selector exists
+
+    NoCandidateFound --> ManualFix : Manual intervention required
+    ManualFix --> [*]
+
+    CandidateFound --> PatchGenerated : Generate diff preview\ndocs/self-healing/*.diff
+
+    PatchGenerated --> ApprovalPending : Write jira/approvals/\napproval-DEMO-102.json\nstatus: PENDING
+
+    ApprovalPending --> HumanReview : ⏸️ WORKFLOW PAUSED\nAwaiting human decision
+
+    HumanReview --> Approved : npm run approve\nstatus: APPROVED
+    HumanReview --> Rejected : npm run reject\nstatus: REJECTED
+
+    Approved --> PatchApplied : patch-applier.ts\nBackup + Replace selector
+    PatchApplied --> TestRerun : Re-run patched test
+
+    TestRerun --> TestPassed2 : PASS ✅
+    TestRerun --> TestFailed2 : FAIL ❌ (unexpected)
+
+    TestPassed2 --> JiraCommentHealed : Post: Patch applied + PASS
+    TestFailed2 --> JiraCommentHealFail : Post: Patch applied but FAIL
+    JiraCommentHealed --> [*]
+    JiraCommentHealFail --> [*]
+
+    Rejected --> JiraCommentReject : Post: Patch REJECTED\nNo code modified
+    JiraCommentReject --> [*]
 ```
-Step 1 — DETECT
-  Playwright locator timeout → error message captured
-  Failed selector extracted via regex from error output
 
-Step 2 — INSPECT
-  DomInspector.extractInteractiveElements(page)
-  Collects tag, text, attributes (data-testid, id, name, aria-label)
-  for all visible interactive elements (capped at 60)
-
-Step 3 — IDENTIFY
-  Azure OpenAI chat completion call
-  System prompt: healing rules + JSON output schema
-  User prompt:   failing selector + DOM elements + test context
-  Response:      { candidateSelector, confidence, reasoning, alternatives }
-
-Step 4 — PROPOSE
-  HealingStore.propose() → written to healing/healing-proposals.json
-  Status: "pending"
-
-Step 5 — APPROVE
-  AUTO_APPROVE=true       → approve immediately  (decidedBy: auto-env)
-  confidence ≥ 0.85       → approve automatically (decidedBy: auto-confidence)
-  confidence < 0.85       → stay pending, log manual approval instructions
-
-Step 6 — PATCH
-  SpecPatcher reads approved proposals
-  Replaces failedSelector with candidateSelector in .spec.ts via regex
-  Writes patched file back to disk
-
-Step 7 — RE-RUN
-  playwright test re-executed against patched spec
-  Results reported in OrchestrationResult.finalRun
-```
+### How it works in code
 
 **Scenario: `data-testid="login-btn"` renamed to `data-testid="signin-btn"`**
 
