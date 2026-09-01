@@ -19,7 +19,8 @@
     "agent/**/*.ts",
     "healing/**/*.ts",
     "jira/**/*.ts",
-    "playwright-tests/**/*.ts"
+    "playwright-tests/**/*.ts",
+    "scripts/**/*.ts"
   ],
   "exclude": [
     "node_modules",
