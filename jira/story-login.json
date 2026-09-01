@@ -1,0 +1,59 @@
+{
+  "issues": [
+    {
+      "storyId": "ECOM-LOGIN-001",
+      "key": "ECOM-LOGIN-001",
+      "summary": "Customer can log in to the storefront with valid credentials",
+      "description": "As a returning shopper, I want to log in to the e-commerce storefront so that I can access my account, saved addresses, and order history.",
+      "acceptanceCriteria": [
+        "Given a registered customer, when valid email and password are submitted, then the customer is signed in and redirected to the account or home page.",
+        "Given the login form, when required fields are empty, then inline validation messages are shown and submission is blocked.",
+        "Given incorrect credentials, when the customer attempts to sign in, then a clear authentication error is displayed without exposing sensitive details.",
+        "Given a successful login, then the session remains active until the user signs out or the session expires."
+      ],
+      "testScenarios": [
+        {
+          "name": "Successful login with valid credentials",
+          "given": "A registered customer is on the login page.",
+          "when": "The customer enters a valid email and password and submits the form.",
+          "then": "The customer is redirected to the storefront account area and a signed-in state is visible.",
+          "playwrightFocus": [
+            "navigate to login page",
+            "fill email and password",
+            "click sign in",
+            "assert post-login URL or account heading"
+          ]
+        },
+        {
+          "name": "Rejected login with invalid password",
+          "given": "A registered customer is on the login page.",
+          "when": "The customer enters a valid email and an invalid password.",
+          "then": "An authentication error message is shown and the customer remains on the login page.",
+          "playwrightFocus": [
+            "fill email with known account",
+            "fill invalid password",
+            "click sign in",
+            "assert visible error banner"
+          ]
+        },
+        {
+          "name": "Required field validation",
+          "given": "The login form is open.",
+          "when": "The customer submits the form without entering credentials.",
+          "then": "Required field messages appear for both inputs and no network sign-in succeeds.",
+          "playwrightFocus": [
+            "leave fields empty",
+            "click sign in",
+            "assert required messages",
+            "verify page remains on login form"
+          ]
+        }
+      ],
+      "comments": [
+        "Use this story as the baseline for Playwright login test generation.",
+        "Prefer stable selectors such as data-testid attributes in future automation.",
+        "Capture screenshots on failure for login and validation scenarios."
+      ]
+    }
+  ]
+}
