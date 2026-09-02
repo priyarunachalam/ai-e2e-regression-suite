@@ -17,6 +17,7 @@
   },
   "include": [
     "agent/**/*.ts",
+    "api/**/*.ts",
     "healing/**/*.ts",
     "jira/**/*.ts",
     "playwright-tests/**/*.ts",

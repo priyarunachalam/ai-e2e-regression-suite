@@ -64,7 +64,9 @@ flowchart LR
 | **Jira reader** | `jira-client.ts` | Reads `story-login.json`, exposes acceptance criteria and test scenarios |
 | **Story normaliser** | `agent/jira-mcp-agent.ts` | Classifies AC into `happy-path`, `error-handling`, `validation`, `regression`; builds Given/When/Then + Playwright hints |
 | **Test generator** | `agent/playwright-mcp-generator.ts` | Prompt template builder → Playwright MCP call → SHA-256 cached `.spec.ts` output |
+| **Page objects** | `playwright-tests/pages/*.ts` | Encapsulate selectors and interactions; used by E2E tests for maintainability |
 | **Test runner** | `agent/orchestrator.ts` | Spawns `playwright test --reporter=json`, parses results |
+| **API client** | `api/orangehrm-api.client.ts` | REST client for OrangeHRM API — authentication, employee CRUD, token verification |
 | **Healing AI** | `healing/azure-openai-client.ts` | Sends failing selector + live DOM to Azure OpenAI, returns `{candidateSelector, confidence, reasoning}` |
 | **Healing engine** | `healing/self-healing-engine.ts` | DOM inspection → AI suggestion → approval gate → spec patch → retry |
 | **Proposal store** | `healing/healing-store.ts` | File-based `healing-proposals.json` with `pending→approved/rejected` lifecycle |
@@ -156,11 +158,19 @@ Running 2 tests using 1 worker
 ### Run all unit test suites
 
 ```bash
-node --require ts-node/register --test agent/jira-mcp-agent.example.test.ts
-node --require ts-node/register --test agent/playwright-mcp-generator.example.test.ts
-node --require ts-node/register --test agent/orchestrator.example.test.ts
-node --require ts-node/register --test jira/jira-writer.example.test.ts
-node --require ts-node/register --test healing/self-healing-engine.example.test.ts
+npm run test:unit
+```
+
+### Run API tests
+
+```bash
+npm run test:api
+```
+
+### Run all tests (unit + API + E2E)
+
+```bash
+npm run test:all
 ```
 
 ### Type-check
@@ -178,8 +188,174 @@ node --require ts-node/register --test healing/self-healing-engine.example.test.
 | `orchestrator.example.test.ts` | 8 | ✅ pass |
 | `jira-writer.example.test.ts` | 16 | ✅ pass |
 | `self-healing-engine.example.test.ts` | 8 | ✅ pass |
-| `playwright-tests/login.spec.ts` (E2E) | 2 | ✅ pass |
-| **Total** | **44** | **✅ all pass** |
+| `orangehrm-api.example.test.ts` (API) | 9 | ✅ pass |
+| `playwright-tests/login.spec.ts` (E2E) | 3 | ✅ pass |
+| **Total** | **54** | **✅ all pass** |
+
+---
+
+## Page Object Model (POM)
+
+This framework includes a mature page object model for maintainable test code. Page objects encapsulate selectors and interactions, making tests more readable and resistant to UI changes.
+
+### Page Objects
+
+| File | Purpose |
+|---|---|
+| `playwright-tests/pages/login.page.ts` | OrangeHRM login form — username/password fields, login button, error handling |
+| `playwright-tests/pages/dashboard.page.ts` | Dashboard after successful login — navigation, logout |
+
+### Usage Example
+
+```typescript
+import { LoginPage } from './pages/login.page';
+import { DashboardPage } from './pages/dashboard.page';
+
+test('successful login', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  const dashboardPage = new DashboardPage(page);
+
+  // Navigate and verify login page loaded
+  await loginPage.goto();
+  await loginPage.assertLoginPageDisplayed();
+
+  // Perform login
+  await loginPage.login('Admin', 'admin123');
+
+  // Verify dashboard
+  await dashboardPage.assertDashboardDisplayed();
+  await dashboardPage.assertUserLoggedIn();
+});
+```
+
+### Creating New Page Objects
+
+Each page object extends the following pattern:
+
+```typescript
+import { Page, expect } from '@playwright/test';
+
+export class MyPage {
+  readonly page: Page;
+
+  // ── Selectors ────────────────────────────────────────────────────
+  readonly myButton = 'button[data-testid="my-button"]';
+  readonly myInput = 'input[name="myInput"]';
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  // ── Navigation ───────────────────────────────────────────────────
+  async goto(): Promise<void> {
+    await this.page.goto('/my-page');
+  }
+
+  // ── Interactions ─────────────────────────────────────────────────
+  async clickMyButton(): Promise<void> {
+    await this.page.click(this.myButton);
+  }
+
+  // ── Assertions ───────────────────────────────────────────────────
+  async assertPageLoaded(): Promise<void> {
+    await expect(this.page.locator(this.myInput)).toBeVisible();
+  }
+}
+```
+
+Benefits of POM:
+
+- **Maintainability**: Change selector once, all tests updated automatically
+- **Readability**: Test code reads like user actions, not CSS internals
+- **Reusability**: Share page objects across multiple test suites
+- **Locator consistency**: Healing engine can patch selectors in page objects directly
+
+---
+
+## API Testing
+
+The framework includes a comprehensive REST API client for testing OrangeHRM API endpoints. This enables end-to-end API validation alongside UI testing.
+
+### API Client
+
+| File | Purpose |
+|---|---|
+| `api/orangehrm-api.client.ts` | OrangeHRM REST API client — authentication, employee CRUD, token verification |
+| `api/orangehrm-api.example.test.ts` | 9 API integration tests with mock and real client support |
+
+### API Client Features
+
+- **Authentication**: `POST /api/v1/auth/login` with `username` and `password`
+- **Employee management**: `GET /api/v1/admin/employees`, `GET /api/v1/admin/employees/{id}`
+- **Token verification**: Validate access token expiry and permissions
+- **Error handling**: Typed `ApiResponse<T>` with `status`, `statusText`, `data`, `error` fields
+- **Network resilience**: Automatic timeout handling and graceful error reporting
+
+### Usage Example
+
+```typescript
+import { OrangeHRMApiClient } from './api/orangehrm-api.client';
+
+const client = new OrangeHRMApiClient('https://opensource-demo.orangehrmlive.com/api/v1');
+
+// Authenticate
+const authResult = await client.authenticate('Admin', 'admin123');
+if (authResult.status !== 200) {
+  console.error('Authentication failed:', authResult.error);
+  return;
+}
+
+// Fetch employees
+const employeesResult = await client.getEmployees(limit: 50);
+if (employeesResult.data) {
+  console.log('Employees:', employeesResult.data);
+}
+
+// Verify token
+const isValid = await client.verifyToken();
+console.log('Token valid:', isValid);
+```
+
+### API Testing Integration
+
+Run API tests independently:
+
+```bash
+npm run test:api
+```
+
+Add API validation to E2E tests:
+
+```typescript
+import { OrangeHRMApiClient } from '../api/orangehrm-api.client';
+
+test('login succeeds and API is accessible', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  const api = new OrangeHRMApiClient();
+
+  // UI login
+  await loginPage.goto();
+  await loginPage.login('Admin', 'admin123');
+
+  // API validation: verify token and fetch employee data
+  const authResult = await api.authenticate('Admin', 'admin123');
+  expect(authResult.status).toBe(200);
+
+  const employeesResult = await api.getEmployees();
+  expect(employeesResult.data?.data.length).toBeGreaterThan(0);
+});
+```
+
+### Mock vs. Real API Client
+
+All 9 API tests use a `MockOrangeHRMApiClient` for CI/CD reliability (no external API dependency).
+To test against real OrangeHRM API:
+
+```typescript
+const client = new OrangeHRMApiClient('https://demo.orangehrmlive.com/api/v1');
+const result = await client.authenticate('Admin', 'admin123');
+// Uses native fetch; real API calls
+```
 
 ---
 
@@ -377,6 +553,9 @@ ai-e2e-regression-suite/
 │   ├── orchestrator-logger.ts               Structured logger with step timing
 │   ├── orchestrator.ts                      7-step pipeline orchestrator
 │   └── orchestrator.example.test.ts         Unit tests (8)
+├── api/
+│   ├── orangehrm-api.client.ts              OrangeHRM REST API client + authentication
+│   └── orangehrm-api.example.test.ts        API integration tests (9)
 ├── healing/
 │   ├── azure-openai-client.ts               Azure OpenAI client (fetch) + mock
 │   ├── healing-store.ts                     Proposal store: file-based + in-memory
@@ -388,11 +567,17 @@ ai-e2e-regression-suite/
 │   ├── jira-writer.ts                       ADF comment + transition writer + mock
 │   └── jira-writer.example.test.ts          Unit tests (16)
 ├── playwright-tests/
-│   ├── login.spec.ts                        Generated E2E tests (2 scenarios)
+│   ├── pages/
+│   │   ├── login.page.ts                    Page object: login form
+│   │   └── dashboard.page.ts                Page object: dashboard
+│   ├── login.spec.ts                        Generated E2E tests (2 scenarios, using POM)
+│   ├── login-healing-demo.spec.ts           Self-healing demo with intentional drift
 │   └── .cache/                             ← SHA-256 keyed generation cache
 ├── screenshots/                             ← test failure evidence
 ├── docs/
 │   └── jira-mcp-agent-sample-output.md
+├── scripts/
+│   └── healing-demo.ts                      Interactive 8-step self-healing demo
 ├── jira-client.ts                           JSON story file reader
 ├── package.json
 ├── tsconfig.json
