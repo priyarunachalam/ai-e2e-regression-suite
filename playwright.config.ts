@@ -9,8 +9,13 @@ export default defineConfig({
   /* Retry once on failure before marking as failed */
   retries: 1,
 
-  /* Default timeout per test */
-  timeout: 30_000,
+  /* Default timeout per test — increased for CI environments with network latency */
+  timeout: process.env["CI"] ? 60_000 : 30_000,
+  
+  /* Timeout for expect() assertions */
+  expect: {
+    timeout: 10_000,
+  },
 
   /* Reporters */
   reporter: [
