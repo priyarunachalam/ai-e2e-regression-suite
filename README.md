@@ -8,7 +8,8 @@ powered by Playwright · Azure OpenAI · Jira MCP
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.54-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Azure OpenAI](https://img.shields.io/badge/Azure_OpenAI-GPT--4o-0078D4?logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/en-us/products/ai-services/openai-service)
-[![Tests](https://img.shields.io/badge/Tests-44%20passing-brightgreen)](.)
+[![Tests](https://img.shields.io/badge/Tests-54%20passing-brightgreen)](.)
+[![CI Pipeline](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](.)
 [![License](https://img.shields.io/badge/License-MIT-blue)](.)
 
 </div>
@@ -191,6 +192,118 @@ npm run test:all
 | `orangehrm-api.example.test.ts` (API) | 9 | ✅ pass |
 | `playwright-tests/login.spec.ts` (E2E) | 3 | ✅ pass |
 | **Total** | **54** | **✅ all pass** |
+
+---
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment. Every push and pull request automatically runs the full test suite.
+
+### Workflows
+
+#### CI Pipeline (`.github/workflows/ci.yml`)
+
+Runs on every push and pull request to `main` or `develop` branches.
+
+**Jobs:**
+1. **Lint & Type Check** — TypeScript compilation
+2. **Unit Tests** — 42 unit tests across 5 suites
+3. **API Tests** — 9 REST API integration tests
+4. **E2E Tests** — 3 Playwright E2E tests
+5. **Test Summary** — Overall pass/fail decision
+
+**Artifacts:**
+- Playwright HTML report (30 days retention)
+- Test videos in WebM format (7 days)
+- Failure screenshots on test failure (7 days)
+
+#### Nightly Healing Demo (`.github/workflows/nightly-healing.yml`)
+
+Runs daily at 2 AM UTC (configurable) and on manual trigger.
+
+**Purpose:**
+- Validates self-healing workflow automatically
+- Tests Azure OpenAI integration on a schedule
+- Captures healing proposals and artifacts
+
+**Trigger manually:**
+- Go to **Actions** → **Nightly Healing Demo** → **Run workflow**
+
+### Setting Up GitHub Actions
+
+#### 1. Configure Secrets
+
+GitHub Actions workflows use secrets for sensitive credentials. Configure them at:
+**Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+
+| Secret | Description |
+|---|---|
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI service endpoint |
+| `AZURE_OPENAI_API_KEY` | Azure OpenAI API key |
+| `JIRA_BASE_URL` | **(Optional)** Jira instance URL |
+| `JIRA_USER_EMAIL` | **(Optional)** Jira automation user |
+| `JIRA_API_TOKEN` | **(Optional)** Jira API token |
+
+**How to obtain:**
+- **Azure OpenAI**: [Azure Portal](https://portal.azure.com) → OpenAI → Keys and Endpoint
+- **Jira**: [Atlassian Account](https://id.atlassian.com/manage-profile/security/api-tokens) → Create API token
+
+#### 2. View Workflow Status
+
+- All workflows: **Actions** tab
+- CI Pipeline status: **Actions** → **CI Pipeline**
+- Add badge to README:
+  ```markdown
+  [![CI Pipeline](https://github.com/your-org/ai-e2e-regression-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/ai-e2e-regression-suite/actions/workflows/ci.yml)
+  ```
+
+#### 3. Enforce CI on Pull Requests
+
+To require CI to pass before merging:
+1. Go to **Settings** → **Branches**
+2. Select **main** → **Add rule**
+3. Enable **Require status checks to pass before merging**
+4. Select all test jobs (unit-tests, api-tests, e2e-tests)
+
+### Local Development vs. CI
+
+| Scenario | Command | Secrets Required |
+|---|---|---|
+| **Local dev** | `npm run test:all` | None (mock clients used) |
+| **GitHub Actions CI** | Automatic on push/PR | Yes (via GitHub Secrets) |
+| **Manual healing demo** | `npm run demo:heal` | Optional (uses mock if not set) |
+| **CI healing demo** | GitHub Actions schedule | Yes (for real Azure OpenAI) |
+
+### Troubleshooting CI Failures
+
+**TypeScript errors:**
+```bash
+npm run build  # Type-check locally before pushing
+```
+
+**Unit/API tests fail:**
+```bash
+npm run test:unit
+npm run test:api
+```
+
+**E2E tests timeout:**
+- OrangeHRM demo may be slow; re-run via **Actions** → **Re-run failed jobs**
+- Increase timeout in `playwright.config.ts` if needed
+
+**Secrets not configured:**
+- Workflows continue with mock clients if secrets are missing
+- Real API calls will fail gracefully
+- Add secrets to **Settings** → **Secrets and variables** → **Actions**
+
+### Full Documentation
+
+See [`.github/GITHUB_ACTIONS_SETUP.md`](.github/GITHUB_ACTIONS_SETUP.md) for:
+- Detailed secret configuration steps
+- CLI setup with `gh secret set`
+- Workflow status badges
+- Environment variable reference
+- Advanced troubleshooting
 
 ---
 

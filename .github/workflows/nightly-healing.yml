@@ -1,0 +1,58 @@
+name: Nightly Healing Demo
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "18"
+  AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+  AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+  AZURE_OPENAI_DEPLOYMENT: gpt-4o
+  AZURE_OPENAI_API_VERSION: "2024-02-15-preview"
+  AUTO_APPROVE: "true"
+  BASE_URL: https://opensource-demo.orangehrmlive.com/
+
+jobs:
+  healing-demo:
+    name: Run Self-Healing Demo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run healing demo
+        run: npm run demo:heal
+        continue-on-error: true
+
+      - name: Upload healing artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: healing-demo-artifacts
+          path: |
+            healing/
+            screenshots/
+          retention-days: 30
+
+      - name: Upload healing proposals
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: healing-proposals
+          path: healing/healing-proposals.json
+          retention-days: 90
